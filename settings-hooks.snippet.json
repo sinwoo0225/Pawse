@@ -1,0 +1,39 @@
+{
+  "_README": "아래 \"hooks\" 객체를 ~/.claude/settings.json 최상위에 추가(병합)하세요. 기존 statusLine/enabledPlugins 등은 그대로 두고 hooks 키만 넣으면 됩니다. 적용 후 Claude Code 재시작 필요.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 600,
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event Stop"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 30,
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event Notification"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 600,
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event PreToolUse"
+          }
+        ]
+      }
+    ]
+  }
+}

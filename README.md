@@ -33,6 +33,46 @@ Claude finishes ─▶ Stop hook ─▶ pawse widget appears
        {"decision":"block","reason":"<your text>"}  ─▶ Claude continues
 ```
 
+### When does the PreToolUse widget appear?
+
+Before a tool runs, the hook decides whether to show the confirm widget. It only shows when **all three gates** pass — otherwise it exits silently and Claude's normal permission flow continues:
+
+```
+        tool about to run
+                │
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   yes
+   │ 1. permission_mode ∈ {auto, bypassPermissions, dontAsk}? │ ──────▶ exit 0  (no widget)
+   └─────────────────────────────────────────────────────────┘
+                │ no
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   yes
+   │ 2. command covered by a permissions.allow rule?          │ ──────▶ exit 0  (no widget)
+   │    (Bash(...) form — the hook matcher is "Bash")         │
+   └─────────────────────────────────────────────────────────┘
+                │ no
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   no
+   │ 3. command matches DangerPattern?                        │ ──────▶ exit 0  (normal flow)
+   │    (default config '.' ⇒ every command matches)          │
+   └─────────────────────────────────────────────────────────┘
+                │ yes
+                ▼
+        ╔══════════════════════════════╗
+        ║   PreToolUse widget appears   ║
+        ║   허용  /  직접 확인  /  차단   ║   (Allow / Ask / Block)
+        ╚══════════════════════════════╝
+                │
+                ▼
+   permissionDecision: allow / ask / deny  ─▶ Claude
+```
+
+- **Gate 1 (mode)**: `auto`/`bypassPermissions`/`dontAsk` proceed without asking, so the widget stays out of the way. It still appears in `default`/`plan`/`acceptEdits`.
+- **Gate 2 (allowlist)**: mirrors `permissions.allow` from `~/.claude` and the project's `.claude` settings, so commands you already trust don't pop the widget. Approving "don't ask again" adds the rule automatically.
+- **Gate 3 (DangerPattern)**: shipped as `'.'` (matches everything) for a *terminal-mirror* feel; set a real regex in `config.psd1` to limit the widget to risky commands only.
+
+> Because the hook can't see Claude Code's *resolved* permission decision (only `tool_name` / `tool_input` / `permission_mode`), this is a best-effort mirror — session-only "allow once" approvals and the built-in safe-command classifier aren't visible to it.
+
 ## Install
 
 1. Clone this repo wherever you like.
@@ -129,7 +169,47 @@ Claude Code가 작업을 마치거나(Stop) 입력을 기다릴 때(Notification
 
 ## 동작 방식
 
-Claude Code의 [hooks](https://code.claude.com/docs/en/hooks)에 위젯 스크립트를 연결합니다. 핵심은 **양방향**이라는 점 — Stop hook이 `{"decision":"block","reason":"<입력>"}`을 반환하면 그 입력이 Claude의 다음 지시가 되어 작업이 이어집니다. (다이어그램은 위 영어 섹션 참고.)
+Claude Code의 [hooks](https://code.claude.com/docs/en/hooks)에 위젯 스크립트를 연결합니다. 핵심은 **양방향**이라는 점 — Stop hook이 `{"decision":"block","reason":"<입력>"}`을 반환하면 그 입력이 Claude의 다음 지시가 되어 작업이 이어집니다.
+
+### PreToolUse 위젯은 언제 뜨나
+
+도구 실행 직전, hook이 **세 관문**을 모두 통과할 때만 확인 위젯을 띄웁니다. 하나라도 걸리면 조용히 종료(`exit 0`)하고 Claude의 평소 권한 흐름으로 넘어갑니다:
+
+```
+        도구 실행 직전
+                │
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   예
+   │ 1. permission_mode 가 auto/bypassPermissions/dontAsk ?    │ ──────▶ exit 0  (위젯 없음)
+   └─────────────────────────────────────────────────────────┘
+                │ 아니오
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   예
+   │ 2. permissions.allow 규칙에 해당하는 명령인가?            │ ──────▶ exit 0  (위젯 없음)
+   │    (Bash(...) 형식 — hook matcher 가 "Bash")              │
+   └─────────────────────────────────────────────────────────┘
+                │ 아니오
+                ▼
+   ┌─────────────────────────────────────────────────────────┐   아니오
+   │ 3. DangerPattern 에 매치되는가?                          │ ──────▶ exit 0  (평소 권한 흐름)
+   │    (기본 설정 '.' ⇒ 모든 명령이 매치)                    │
+   └─────────────────────────────────────────────────────────┘
+                │ 예
+                ▼
+        ╔══════════════════════════════╗
+        ║   PreToolUse 위젯 표시         ║
+        ║   허용  /  직접 확인  /  차단   ║
+        ╚══════════════════════════════╝
+                │
+                ▼
+   permissionDecision: allow / ask / deny  ─▶ Claude
+```
+
+- **관문 1 (모드)**: `auto`/`bypassPermissions`/`dontAsk`는 묻지 않고 진행하는 모드라 위젯이 끼어들지 않습니다. `default`/`plan`/`acceptEdits`에선 뜹니다.
+- **관문 2 (allowlist)**: `~/.claude`와 프로젝트 `.claude` 설정의 `permissions.allow`를 미러링해, 이미 신뢰하는 명령엔 위젯이 안 뜹니다. "허용하고 다시 묻지 않기"를 고르면 규칙이 자동 추가됩니다.
+- **관문 3 (DangerPattern)**: *터미널 미러* 느낌을 위해 기본값 `'.'`(모두 매치)로 출고됩니다. `config.psd1`에서 정규식을 지정하면 위험 명령에만 위젯을 띄울 수 있습니다.
+
+> hook은 Claude Code의 *최종* 권한 결정은 못 보고(`tool_name`/`tool_input`/`permission_mode`만 받음), 그래서 이는 최선의 근사입니다 — "이번만 허용" 같은 세션 단위 승인과 내장 안전-명령 분류기는 hook에 보이지 않습니다.
 
 ## 설치
 

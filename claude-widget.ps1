@@ -57,6 +57,54 @@ try {
     $danger = if ($cfg.DangerPattern) { [string]$cfg.DangerPattern } else {
         '(^|\s)(rm|del|rmdir|rd)\s|Remove-Item|-Recurse|\bformat\b|\bmkfs|dd\s+if=|git\s+push\b.*--force|--force\b|>\s*/dev/|chmod\s+-R|takeown|\bshutdown\b'
     }
+
+    # ----- allowlist 확인 -----
+    # settings.json의 permissions.allow와 매칭되는 명령이면 위젯을 띄우지 않는다.
+    # Claude Code가 이미 조용히 통과시킬(혹은 서브에이전트가 상속받아 통과시킬) 명령엔
+    # 위젯이 끼어들지 않게 해서 "터미널이 실제로 물어볼 때만 위젯도 뜬다"를 맞춘다.
+    # settings 파싱이 실패하면 안전하게 $false(=위젯 정상 표시)로 떨어진다.
+    function Test-CommandAllowed {
+        param([string]$ToolName, [string]$Target)
+        if (-not $ToolName -or -not $Target) { return $false }
+        try {
+            # 후보 settings 파일: 사용자(~/.claude) + 프로젝트(.claude)
+            $files = @(Join-Path $env:USERPROFILE '.claude\settings.json')
+            $projDir = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR }
+            elseif ($data -and $data.cwd) { [string]$data.cwd }
+            else { $null }
+            if ($projDir) {
+                $files += (Join-Path $projDir '.claude\settings.json')
+                $files += (Join-Path $projDir '.claude\settings.local.json')
+            }
+
+            $rules = @()
+            foreach ($f in $files) {
+                if (Test-Path -LiteralPath $f) {
+                    try {
+                        $j = Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json
+                        if ($j.permissions -and $j.permissions.allow) { $rules += $j.permissions.allow }
+                    }
+                    catch {}
+                }
+            }
+
+            $t = $Target.Trim()
+            foreach ($rule in $rules) {
+                # 규칙 형식: "ToolName"  또는  "ToolName(pattern)"
+                $m = [regex]::Match([string]$rule, '^\s*([A-Za-z0-9_]+)\s*(?:\((.*)\)\s*)?$')
+                if (-not $m.Success) { continue }
+                if ($m.Groups[1].Value -ne $ToolName) { continue }
+                $pat = $m.Groups[2].Value
+                # 패턴이 없거나 '*' 면 도구 전체 허용
+                if (-not $m.Groups[2].Success -or $pat -eq '' -or $pat -eq '*') { return $true }
+                # glob('*') → 정규식. 그 외 문자는 리터럴로 이스케이프.
+                $rx = '^' + ([regex]::Escape($pat) -replace '\\\*', '.*') + '$'
+                if ($t -match $rx) { return $true }
+            }
+        }
+        catch { return $false }
+        return $false
+    }
     # ----- 테마 팔레트 (라이트/다크) -----
     # Mode: 'auto'(시스템 따름) | 'light' | 'dark'
     $mode = if ($cfg.Mode) { [string]$cfg.Mode } else { 'auto' }
@@ -431,15 +479,28 @@ $res
 
         # --------------------------------------------------- PreToolUse
         'PreToolUse' {
+            # 권한 모드 게이트: auto / bypassPermissions / dontAsk 에선 위젯을 띄우지 않는다.
+            #   (auto·bypass = "알아서 진행", dontAsk = 비대화형 자동거부 → 위젯 확인이 무의미/방해.
+            #    plan/default/acceptEdits 등에선 띄움)
+            #   $data.permission_mode: default | plan | auto | acceptEdits | bypassPermissions | dontAsk
+            #   permission_mode 가 없으면(구버전/수동 테스트) 빈 문자열 → skip 안 함(기존대로 표시)
+            $pm = if ($data) { [string]$data.permission_mode } else { '' }
+            if ($pm -in @('auto', 'bypassPermissions', 'dontAsk')) { exit 0 }
+            #   ▶ 다른 조합 예:
+            #       default 모드에서만 띄우기:  if ($pm -and $pm -ne 'default') { exit 0 }
+
             $cmd = ''
             if ($data -and $data.tool_input) {
                 if ($data.tool_input.command) { $cmd = [string]$data.tool_input.command }
                 elseif ($data.tool_input.file_path) { $cmd = [string]$data.tool_input.file_path }
             }
+            $toolName = if ($data) { [string]$data.tool_name } else { 'Bash' }
+
+            # 이미 allowlist로 통과될 명령이면 위젯 안 띄움 (메인/서브에이전트 공통)
+            if (Test-CommandAllowed $toolName $cmd) { exit 0 }
+
             # 위험 패턴이 아니면 위젯 안 띄우고 정상 권한 흐름
             if (-not $cmd -or ($cmd -notmatch $danger)) { exit 0 }
-
-            $toolName = if ($data) { [string]$data.tool_name } else { 'Bash' }
 
             $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"

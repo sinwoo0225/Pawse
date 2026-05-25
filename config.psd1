@@ -24,9 +24,25 @@
     Accent     = '#6C4DD6'
     AccentDark = '#B9A4FF'
 
-    # PreToolUse 위젯을 띄울 "위험 명령" 정규식.
-    #  - 이 패턴에 매치되는 Bash 명령에만 허용/차단 위젯이 뜸 (나머지는 평소대로 동작).
-    #  - 모든 Bash 명령에서 위젯을 띄우고 싶으면  '.'  으로 바꾸세요.
-    #  - PreToolUse 위젯을 끄려면 settings.json에서 PreToolUse hook을 제거하세요.
-    DangerPattern = '(^|\s)(rm|del|rmdir|rd)\s|Remove-Item|-Recurse|\bformat\b|\bmkfs|dd\s+if=|git\s+push\b.*--force|--force\b|>\s*/dev/|chmod\s+-R|takeown|\bshutdown\b'
+    # PreToolUse 위젯을 띄울 명령 정규식. (위젯 hook은 default 권한 모드에서만 동작)
+    #
+    # ── 현재: '.' = "터미널 미러" 모드 ──────────────────────────────────────
+    #   '.'은 비어있지 않은 모든 명령에 매치되므로, default 모드에서
+    #   allowlist(permissions.allow)에 없는 "모든" 명령에 위젯이 뜸
+    #   = 터미널 권한 프롬프트와 동일하게 동작.
+    #
+    #   ▶ 자주 쓰는 명령은 settings.json / settings.local.json 의 permissions.allow 에
+    #     등록해두면 위젯이 안 뜸. 위젯 hook은 'Bash' 도구에 걸리므로 규칙도 Bash(...) 형식.
+    #       "permissions": { "allow": [ "Bash(git *)", "Bash(npm run *)", "Bash(ls *)" ] }
+    #     (Claude Code 프롬프트에서 "허용하고 다시 묻지 않기"를 골라도 여기에 자동 추가됨)
+    #
+    # ── "위험 명령만" 모드로 되돌리려면 ──────────────────────────────────────
+    #   아래 DangerPattern = '.' 줄을 주석 처리(#)하고,
+    #   그 밑의 주석 처리된 위험-패턴 줄의 주석을 풀어 활성화하세요. (둘 중 하나만 활성)
+    #   패턴은 정규식이며 `|`로 항목을 추가할 수 있습니다.
+    #     예: ...|takeown|\bshutdown\b|\bcurl\b|새_위험명령
+    #
+    #   ※ PreToolUse 위젯 자체를 끄려면 settings.json에서 PreToolUse hook을 제거하세요.
+    DangerPattern = '.'
+    # DangerPattern = '(^|\s)(rm|del|rmdir|rd)\s|Remove-Item|-Recurse|\bformat\b|\bmkfs|dd\s+if=|git\s+push\b.*--force|--force\b|>\s*/dev/|chmod\s+-R|takeown|\bshutdown\b'
 }

@@ -371,24 +371,34 @@ try {
 $res
   <Border CornerRadius="8" Background="$bg" BorderBrush="$stroke" BorderThickness="1" Padding="16" Margin="28">
     <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="6" Direction="270" Opacity="0.2"/></Border.Effect>
-    <StackPanel Orientation="Horizontal" Width="436">
-      <ContentControl x:Name="CharSlot" Width="84" Height="84" VerticalAlignment="Top"/>
-      <StackPanel Margin="12,0,0,0" Width="328">
-        <TextBlock Text="작업을 마쳤어요" FontSize="20" FontWeight="SemiBold" Foreground="$fg"/>
-        <Border x:Name="PreviewBox" CornerRadius="4" Background="$subtle" Margin="0,12,0,0" Padding="12" MaxHeight="200">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <TextBlock x:Name="Preview" TextWrapping="Wrap" Foreground="$fgMute" FontSize="14" LineHeight="20"/>
-          </ScrollViewer>
-        </Border>
-        <TextBox x:Name="Input" Margin="0,12,0,0" MinHeight="60" MaxHeight="152"
-                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
-        <TextBlock Text="Ctrl+Enter 이어가기 · Esc 종료" FontSize="12" Foreground="$fgMute" Margin="2,8,0,0"/>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-          <Button x:Name="BtnStop" Content="종료" MinWidth="72" Height="32" Margin="0,0,8,0"/>
-          <Button x:Name="BtnGo" Content="이어가기" MinWidth="96" Height="32" Style="{StaticResource Primary}"/>
+    <Grid Width="600">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <StackPanel Grid.Row="0" Orientation="Horizontal">
+        <ContentControl x:Name="CharSlot" Width="84" Height="84" VerticalAlignment="Center"/>
+        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="작업을 마쳤어요" FontSize="20" FontWeight="SemiBold" Foreground="$fg"/>
+          <TextBlock Text="이어서 지시하거나 종료할 수 있어요" FontSize="12" Foreground="$fgMute" Margin="0,2,0,0"/>
         </StackPanel>
       </StackPanel>
-    </StackPanel>
+      <Border x:Name="PreviewBox" Grid.Row="1" CornerRadius="4" Background="$subtle" Margin="0,12,0,0" Padding="12" MaxHeight="280">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <TextBlock x:Name="Preview" TextWrapping="Wrap" Foreground="$fgMute" FontSize="14" LineHeight="20"/>
+        </ScrollViewer>
+      </Border>
+      <TextBox x:Name="Input" Grid.Row="2" Margin="0,12,0,0" MinHeight="72" MaxHeight="200"
+               TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+      <TextBlock Grid.Row="3" Text="Ctrl+Enter 이어가기 · Esc 종료" FontSize="12" Foreground="$fgMute" Margin="2,8,0,0"/>
+      <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+        <Button x:Name="BtnStop" Content="종료" MinWidth="72" Height="32" Margin="0,0,8,0"/>
+        <Button x:Name="BtnGo" Content="이어가기" MinWidth="96" Height="32" Style="{StaticResource Primary}"/>
+      </StackPanel>
+    </Grid>
   </Border>
 </Window>
 "@
@@ -510,23 +520,30 @@ $res
 $res
   <Border CornerRadius="8" Background="$bg" BorderBrush="$stroke" BorderThickness="1" Padding="16" Margin="28">
     <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="6" Direction="270" Opacity="0.2"/></Border.Effect>
-    <StackPanel Orientation="Horizontal" Width="440">
-      <ContentControl x:Name="CharSlot" Width="64" Height="64" VerticalAlignment="Top"/>
-      <StackPanel Margin="12,0,0,0" Width="364">
-        <TextBlock Text="실행 전 확인이 필요해요" FontSize="20" FontWeight="SemiBold" Foreground="$warnText"/>
-        <TextBlock Text="$toolName · 되돌릴 수 없는 작업일 수 있어요" FontSize="12" Foreground="$fgMute" Margin="0,2,0,0"/>
-        <Border CornerRadius="4" Background="$subtle" Margin="0,12,0,0" Padding="12" MaxHeight="152">
-          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-            <TextBlock x:Name="Cmd" TextWrapping="Wrap" Foreground="$fg" FontFamily="Cascadia Mono, Consolas" FontSize="13"/>
-          </ScrollViewer>
-        </Border>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-          <Button x:Name="BtnAllow" Content="허용" MinWidth="72" Height="32" Margin="0,0,8,0" Style="{StaticResource DangerOutline}"/>
-          <Button x:Name="BtnAsk" Content="직접 확인" MinWidth="84" Height="32" Margin="0,0,8,0"/>
-          <Button x:Name="BtnDeny" Content="차단" MinWidth="80" Height="32" Style="{StaticResource Primary}"/>
+    <Grid Width="600">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <StackPanel Grid.Row="0" Orientation="Horizontal">
+        <ContentControl x:Name="CharSlot" Width="64" Height="64" VerticalAlignment="Center"/>
+        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="실행 전 확인이 필요해요" FontSize="20" FontWeight="SemiBold" Foreground="$warnText"/>
+          <TextBlock Text="$toolName · 되돌릴 수 없는 작업일 수 있어요" FontSize="12" Foreground="$fgMute" Margin="0,2,0,0"/>
         </StackPanel>
       </StackPanel>
-    </StackPanel>
+      <Border Grid.Row="1" CornerRadius="4" Background="$subtle" Margin="0,12,0,0" Padding="12" MaxHeight="152">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+          <TextBlock x:Name="Cmd" TextWrapping="Wrap" Foreground="$fg" FontFamily="Cascadia Mono, Consolas" FontSize="13"/>
+        </ScrollViewer>
+      </Border>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+        <Button x:Name="BtnAllow" Content="허용" MinWidth="72" Height="32" Margin="0,0,8,0" Style="{StaticResource DangerOutline}"/>
+        <Button x:Name="BtnAsk" Content="직접 확인" MinWidth="84" Height="32" Margin="0,0,8,0"/>
+        <Button x:Name="BtnDeny" Content="차단" MinWidth="80" Height="32" Style="{StaticResource Primary}"/>
+      </StackPanel>
+    </Grid>
   </Border>
 </Window>
 "@

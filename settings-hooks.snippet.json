@@ -22,18 +22,6 @@
           }
         ]
       }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "timeout": 600,
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event PreToolUse"
-          }
-        ]
-      }
     ]
   }
 }

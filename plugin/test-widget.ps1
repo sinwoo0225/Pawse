@@ -13,11 +13,21 @@ function Check([string]$name, [bool]$cond) {
 "== 1. 위험 명령 정규식 (config.psd1) =="
 $cfg = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'config.psd1')
 $dp = $cfg.DangerPattern
-Check "rm -rf 매칭"            ('rm -rf build' -match $dp)
-Check "git push --force 매칭"  ('git push origin main --force' -match $dp)
-Check "Remove-Item 매칭"       ('Remove-Item -Recurse x' -match $dp)
-Check "ls -la 비매칭"          (-not ('ls -la' -match $dp))
-Check "npm test 비매칭"        (-not ('npm test' -match $dp))
+# DangerPattern은 두 모드를 지원한다(config.psd1 주석 참고). 출고 기본값에 맞춰 기대값 검증:
+#   '.'       = 터미널-미러(출고 기본값): 비어있지 않은 모든 명령에 매치
+#   위험-only = 위험 명령에만 매치
+Check "위험 명령 매치 (rm -rf)"            ('rm -rf build' -match $dp)
+Check "위험 명령 매치 (git push --force)"  ('git push origin main --force' -match $dp)
+if ($dp -eq '.') {
+    Check "터미널-미러: 일반 명령도 매치 (ls -la)"   ('ls -la' -match $dp)
+    Check "터미널-미러: 일반 명령도 매치 (npm test)" ('npm test' -match $dp)
+    Check "터미널-미러: 빈 명령은 비매치"            (-not ('' -match $dp))
+}
+else {
+    Check "위험-only: Remove-Item 매치"  ('Remove-Item -Recurse x' -match $dp)
+    Check "위험-only: ls -la 비매치"     (-not ('ls -la' -match $dp))
+    Check "위험-only: npm test 비매치"   (-not ('npm test' -match $dp))
+}
 
 "== 2. UTF-8 stdin/stdout 왕복 =="
 $json = @{ reason = '한글 테스트 メッセージ 🐾' } | ConvertTo-Json -Compress

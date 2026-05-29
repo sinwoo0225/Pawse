@@ -1,5 +1,5 @@
 {
-  "_README": "아래 \"hooks\" 객체를 ~/.claude/settings.json 최상위에 추가(병합)하세요. 기존 statusLine/enabledPlugins 등은 그대로 두고 hooks 키만 넣으면 됩니다. 적용 후 Claude Code 재시작 필요.",
+  "_README": "수동 설치(fallback)용 스니펫입니다. 권장은 플러그인 설치: Claude Code에서 '/plugin marketplace add sinwoo0225/Pawse' → '/plugin install pawse@leo'. 직접 연결하려면 아래 \"hooks\" 객체를 ~/.claude/settings.json 최상위에 병합하고, <install-path>를 이 저장소의 절대경로로 바꾸세요(스크립트는 plugin\\ 하위에 있음). 기존 statusLine/enabledPlugins 등은 그대로 두고 hooks 키만 넣으면 됩니다. 적용 후 Claude Code 재시작 필요.",
   "hooks": {
     "Stop": [
       {
@@ -7,7 +7,7 @@
           {
             "type": "command",
             "timeout": 600,
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event Stop"
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event Stop"
           }
         ]
       }
@@ -18,7 +18,7 @@
           {
             "type": "command",
             "timeout": 30,
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Users\\raltl\\Documents\\Workspace\\claude\\claude-widget\\claude-widget.ps1\" -Event Notification"
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event Notification"
           }
         ]
       }

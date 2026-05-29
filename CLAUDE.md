@@ -12,12 +12,12 @@ There is **no build/compile** — it's an interpreted PowerShell script. Use Win
 
 ```powershell
 # Logic tests (no GUI): danger regex, UTF-8 round-trip, transcript preview, syntax check
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test-widget.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\test-widget.ps1
 
 # Manual GUI test — pipe a sample hook JSON to one event
-'{"hook_event_name":"Stop","stop_hook_active":false,"transcript_path":""}' | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event Stop
-'{"tool_name":"Bash","tool_input":{"command":"rm -rf build"}}'             | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event PreToolUse
-'{"notification_type":"idle_prompt","message":"hi"}'                        | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event Notification
+'{"hook_event_name":"Stop","stop_hook_active":false,"transcript_path":""}' | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event Stop
+'{"tool_name":"Bash","tool_input":{"command":"rm -rf build"}}'             | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event PreToolUse
+'{"notification_type":"idle_prompt","message":"hi"}'                        | powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event Notification
 
 # Syntax check without running
 $e=$null; [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\claude-widget.ps1),[ref]$null,[ref]$e); $e
@@ -45,7 +45,9 @@ The three events map to distinct hook contracts:
 
 **Character resolution**: `New-CharacterElement` uses `assets/<event>.png` if present (the Leo lion faces), else falls back to a built-in XAML vector cat. So changing the character is just swapping PNGs — no code change.
 
-**Hook wiring lives outside the repo**, in `~/.claude/settings.json` under `hooks` (one command per event, calling this script with `-Event …`). The default wiring — and `settings-hooks.snippet.json` — registers **Stop + Notification only**. **PreToolUse is opt-in** (the user found a popup before every tool call too disruptive); the script still supports `-Event PreToolUse`, so re-enabling it is just pasting the hook block back (see README → *Optional: PreToolUse*). Editing `config.psd1` takes effect on the next widget (read each run); editing `settings.json` hooks requires restarting Claude Code.
+**This repo is packaged as a Claude Code plugin.** Layout: the repo root holds `.claude-plugin/marketplace.json` (a self-hosted marketplace named `leo`); the plugin itself lives under `plugin/` — `plugin/.claude-plugin/plugin.json`, `plugin/hooks/hooks.json` (Stop + Notification, pathed via `${CLAUDE_PLUGIN_ROOT}`), and the script/`config.psd1`/`assets`. Install: `/plugin marketplace add sinwoo0225/Pawse` → `/plugin install pawse@leo`. The bundled hooks register **Stop + Notification only**; **PreToolUse is opt-in** (a popup before every tool call was too disruptive) — the script still supports `-Event PreToolUse`, so enabling it means adding the hook block to your own `settings.json` (see README → *Optional: PreToolUse*).
+
+**Config/asset resolution** (`claude-widget.ps1`, the `config.psd1` load block): when installed as a plugin, the script reads user overrides from `$env:CLAUDE_PLUGIN_DATA` first — it seeds `config.psd1` there on first run and uses `${CLAUDE_PLUGIN_DATA}\assets` if present — then falls back to the bundled defaults next to the script (`$PSScriptRoot`, which equals `${CLAUDE_PLUGIN_ROOT}`). This keeps customizations across plugin updates. With no `CLAUDE_PLUGIN_DATA` set (manual install / direct run) it reads `plugin/config.psd1` directly, so old behavior is unchanged. Editing config takes effect on the next widget (read each run); editing `hooks.json`/`settings.json` hooks requires `/reload-plugins` or a Claude Code restart. A manual-install fallback snippet lives in `settings-hooks.snippet.json`.
 
 ## Critical gotchas (these will silently break things)
 

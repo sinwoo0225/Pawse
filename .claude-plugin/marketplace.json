@@ -1,0 +1,12 @@
+{
+  "name": "leo",
+  "owner": { "name": "sinwoo0225" },
+  "description": "Leo's marketplace — home of pawse, the interactive desktop hook widget for Claude Code (Windows).",
+  "plugins": [
+    {
+      "name": "pawse",
+      "source": "./plugin",
+      "description": "Interactive desktop hook widget for Claude Code (Windows)."
+    }
+  ]
+}

@@ -38,21 +38,37 @@ Claude finishes ─▶ Stop hook ─▶ pawse widget appears
 
 ## Install
 
-1. Clone this repo wherever you like.
-2. Add the following to `hooks` in `~/.claude/settings.json`. **Replace `<install-path>` with the absolute path to `claude-widget.ps1`.**
+> **Windows only.** pawse uses `powershell.exe` + WPF. Installing on macOS/Linux is harmless but the widget won't appear.
+
+### Recommended: install as a plugin
+
+pawse ships as a Claude Code [plugin](https://code.claude.com/docs/en/plugins) — nothing to hand-edit. In Claude Code:
+
+```text
+/plugin marketplace add sinwoo0225/Pawse
+/plugin install pawse@leo
+```
+
+Then run `/reload-plugins` (or restart Claude Code). The **Stop + Notification** hooks are wired automatically via `${CLAUDE_PLUGIN_ROOT}`.
+
+### Manual install (fallback)
+
+Prefer to wire it yourself? Clone the repo and add this to `hooks` in `~/.claude/settings.json`, replacing `<install-path>` with the absolute path to the repo. **Note the `plugin\` subfolder** — the script lives under `plugin/`:
 
 ```json
 "hooks": {
   "Stop": [{ "hooks": [{ "type": "command", "timeout": 600,
-    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\claude-widget.ps1\" -Event Stop" }] }],
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event Stop" }] }],
   "Notification": [{ "hooks": [{ "type": "command", "timeout": 30,
-    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\claude-widget.ps1\" -Event Notification" }] }]
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event Notification" }] }]
 }
 ```
 
-3. **Restart** Claude Code to load the hooks.
+Then **restart** Claude Code to load the hooks.
 
 > WPF needs an STA thread, so it's invoked with **`powershell.exe`** (Windows PowerShell 5.1), not `pwsh`.
+
+> **Upgrading from a pre-plugin manual install?** The script moved from the repo root into `plugin/`. Switch to the plugin install above, or update your `settings.json` hook path to add `\plugin`.
 
 ## Optional: PreToolUse (risky-command confirm)
 
@@ -60,7 +76,7 @@ Not part of the default install above — pawse can also pop a confirm widget ri
 
 ```json
 "PreToolUse": [{ "matcher": "Bash", "hooks": [{ "type": "command", "timeout": 600,
-  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\claude-widget.ps1\" -Event PreToolUse" }] }]
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event PreToolUse" }] }]
 ```
 
 Then set a `DangerPattern` regex in `config.psd1` to choose which commands trigger it (the shipped default `'.'` matches every command), and **restart** Claude Code.
@@ -119,27 +135,29 @@ Before a tool runs, the hook decides whether to show the confirm widget. It only
 
 `config.psd1` is read every time a widget appears, so changes apply **without restarting** Claude Code.
 
+> **Installed as a plugin?** The bundled `config.psd1` lives in the plugin cache and is overwritten on update. On first run pawse copies it to the plugin's data folder (`${CLAUDE_PLUGIN_DATA}\config.psd1`); edit **that** copy — your settings then survive plugin updates. (Manual installs just edit `plugin/config.psd1` directly.)
+
 ## Changing the character (Leo)
 
-The `assets/` folder contains Leo's three expressions (`stop.png`, `notification.png`, `pretooluse.png`). Replace them with your own **transparent PNGs** (square recommended) to change the character. Delete them to fall back to the built-in vector character.
+The `plugin/assets/` folder contains Leo's three expressions (`stop.png`, `notification.png`, `pretooluse.png`). Replace them with your own **transparent PNGs** (square recommended) to change the character. Delete them to fall back to the built-in vector character. When installed as a plugin, drop your PNGs in `${CLAUDE_PLUGIN_DATA}\assets\` instead so they survive updates.
 
 ## Try it directly
 
 ```powershell
 # Stop widget (type, continue → check JSON output)
 '{"hook_event_name":"Stop","stop_hook_active":false,"transcript_path":""}' |
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event Stop
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event Stop
 
 # Notification toast
 '{"notification_type":"idle_prompt","message":"Waiting for input"}' |
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event Notification
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event Notification
 
 # PreToolUse widget (optional event — risky command)
 '{"tool_name":"Bash","tool_input":{"command":"rm -rf build"}}' |
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\claude-widget.ps1 -Event PreToolUse
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\claude-widget.ps1 -Event PreToolUse
 ```
 
-Logic only (no GUI): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\test-widget.ps1`
+Logic only (no GUI): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\plugin\test-widget.ps1`
 
 ## Details & limitations
 
@@ -152,10 +170,14 @@ Logic only (no GUI): `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\
 
 | File | Role |
 |---|---|
-| `claude-widget.ps1` | Single entry point; dispatches on `-Event Stop\|Notification\|PreToolUse` |
-| `config.psd1` | User settings |
-| `assets/` | Leo expression PNGs (customizable) |
-| `test-widget.ps1` | Dependency-free logic tests |
+| `.claude-plugin/marketplace.json` | Self-hosted marketplace `leo` (lists the `pawse` plugin) |
+| `plugin/.claude-plugin/plugin.json` | Plugin manifest |
+| `plugin/hooks/hooks.json` | Stop + Notification hooks (wired via `${CLAUDE_PLUGIN_ROOT}`) |
+| `plugin/claude-widget.ps1` | Single entry point; dispatches on `-Event Stop\|Notification\|PreToolUse` |
+| `plugin/config.psd1` | User settings (bundled default — see the data-folder note in Configuration) |
+| `plugin/assets/` | Leo expression PNGs (customizable) |
+| `plugin/test-widget.ps1` | Dependency-free logic tests |
+| `settings-hooks.snippet.json` | Manual-install hooks snippet (fallback) |
 
 ## License
 
@@ -188,11 +210,26 @@ Claude Code의 [hooks](https://code.claude.com/docs/en/hooks)에 위젯 스크�
 
 ## 설치
 
-1. 이 저장소를 원하는 위치에 클론합니다.
-2. `~/.claude/settings.json`의 `hooks`에 위 영어 섹션의 JSON을 추가합니다. **`<install-path>`를 `claude-widget.ps1`의 실제 절대경로로 바꾸세요.**
-3. Claude Code를 **재시작**하면 hook이 로드됩니다.
+> **Windows 전용.** pawse는 `powershell.exe` + WPF를 쓰므로 Windows에서 동작합니다. mac/Linux에 설치해도 무해하지만 위젯은 뜨지 않습니다.
+
+### 권장: 플러그인으로 설치
+
+pawse는 Claude Code [플러그인](https://code.claude.com/docs/en/plugins)으로 배포되어 경로를 손볼 필요가 없습니다. Claude Code에서:
+
+```text
+/plugin marketplace add sinwoo0225/Pawse
+/plugin install pawse@leo
+```
+
+이어서 `/reload-plugins`(또는 Claude Code 재시작). **Stop + Notification** hook이 `${CLAUDE_PLUGIN_ROOT}`로 자동 연결됩니다.
+
+### 수동 설치 (fallback)
+
+직접 연결하려면 저장소를 클론한 뒤 `~/.claude/settings.json`의 `hooks`에 위 영어 섹션의 JSON을 추가하세요. **`<install-path>`를 저장소 절대경로로 바꾸고, 스크립트가 `plugin\` 하위에 있음에 주의**(`...\plugin\claude-widget.ps1`). 그 후 Claude Code를 **재시작**하세요.
 
 > WPF는 STA 스레드가 필요하므로 `pwsh`가 아니라 **`powershell.exe`**(Windows PowerShell 5.1)로 호출합니다.
+
+> **플러그인 이전의 수동 설치에서 올라오나요?** 스크립트가 저장소 루트에서 `plugin/`으로 이동했습니다. 위 플러그인 설치로 전환하거나 `settings.json` hook 경로에 `\plugin`을 추가하세요.
 
 ## 선택: PreToolUse (위험 명령 확인)
 
@@ -200,7 +237,7 @@ Claude Code의 [hooks](https://code.claude.com/docs/en/hooks)에 위젯 스크�
 
 ```json
 "PreToolUse": [{ "matcher": "Bash", "hooks": [{ "type": "command", "timeout": 600,
-  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\claude-widget.ps1\" -Event PreToolUse" }] }]
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"<install-path>\\plugin\\claude-widget.ps1\" -Event PreToolUse" }] }]
 ```
 
 그리고 `config.psd1`의 `DangerPattern` 정규식으로 어떤 명령에 띄울지 정한 뒤(출고 기본값 `'.'`은 모든 명령에 매치) Claude Code를 **재시작**하세요.
@@ -259,9 +296,11 @@ Claude Code의 [hooks](https://code.claude.com/docs/en/hooks)에 위젯 스크�
 
 `config.psd1`은 위젯이 뜰 때마다 읽으므로 **Claude Code 재시작 없이** 반영됩니다.
 
+> **플러그인으로 설치한 경우?** 번들 `config.psd1`은 플러그인 캐시에 있어 업데이트 시 덮어쓰입니다. pawse는 첫 실행 때 이를 플러그인 데이터 폴더(`${CLAUDE_PLUGIN_DATA}\config.psd1`)로 복사하므로, **그 사본**을 편집하면 설정이 플러그인 업데이트에도 보존됩니다. (수동 설치는 `plugin/config.psd1`을 직접 편집하면 됩니다.)
+
 ## 캐릭터(Leo) 바꾸기
 
-`assets/` 폴더에 사자 Leo의 표정 3종(`stop.png`, `notification.png`, `pretooluse.png`)이 들어 있습니다. 원하는 **투명 PNG**(정사각형 권장)로 교체하면 캐릭터가 바뀝니다. 파일을 지우면 스크립트에 내장된 벡터 캐릭터가 대신 표시됩니다.
+`plugin/assets/` 폴더에 사자 Leo의 표정 3종(`stop.png`, `notification.png`, `pretooluse.png`)이 들어 있습니다. 원하는 **투명 PNG**(정사각형 권장)로 교체하면 캐릭터가 바뀝니다. 파일을 지우면 스크립트에 내장된 벡터 캐릭터가 대신 표시됩니다. 플러그인으로 설치했다면 업데이트에도 보존되도록 `${CLAUDE_PLUGIN_DATA}\assets\`에 PNG를 넣으세요.
 
 ## 동작 원리 / 한계
 

@@ -43,12 +43,33 @@ try {
     }
 
     # ----- 설정 로드 (config.psd1) -----
-    $cfgPath = Join-Path $PSScriptRoot 'config.psd1'
+    # 번들 기본값은 스크립트 옆($PSScriptRoot; 플러그인 설치 시 = ${CLAUDE_PLUGIN_ROOT}).
+    # 플러그인으로 설치되면 사용자 커스터마이즈는 ${CLAUDE_PLUGIN_DATA}에 두어
+    # 플러그인 업데이트(캐시 덮어쓰기)에도 보존되게 한다. 수동 설치 땐 변수가 비어 기존 동작 유지.
+    $dataDir   = $env:CLAUDE_PLUGIN_DATA
+    $bundledCfg = Join-Path $PSScriptRoot 'config.psd1'
+    $cfgPath = $bundledCfg
+    if ($dataDir) {
+        $userCfg = Join-Path $dataDir 'config.psd1'
+        # 첫 실행 시 번들 기본값을 데이터 폴더로 시드 → "재시작 없이 편집" UX 유지 + 업데이트 보존
+        if (-not (Test-Path -LiteralPath $userCfg) -and (Test-Path -LiteralPath $bundledCfg)) {
+            try {
+                if (-not (Test-Path -LiteralPath $dataDir)) { New-Item -ItemType Directory -Force -Path $dataDir | Out-Null }
+                Copy-Item -LiteralPath $bundledCfg -Destination $userCfg -ErrorAction Stop
+            } catch {}
+        }
+        if (Test-Path -LiteralPath $userCfg) { $cfgPath = $userCfg }
+    }
     $cfg = @{}
     if (Test-Path -LiteralPath $cfgPath) {
         try { $cfg = Import-PowerShellDataFile -Path $cfgPath } catch { $cfg = @{} }
     }
+    # 에셋도 데이터 폴더에 assets/가 있으면 우선(사용자 PNG 교체분이 업데이트에도 보존됨)
     $assetsDir = Join-Path $PSScriptRoot 'assets'
+    if ($dataDir) {
+        $userAssets = Join-Path $dataDir 'assets'
+        if (Test-Path -LiteralPath $userAssets) { $assetsDir = $userAssets }
+    }
 
     $sound = $true
     if ($cfg.ContainsKey('Sound')) { $sound = [bool]$cfg.Sound }

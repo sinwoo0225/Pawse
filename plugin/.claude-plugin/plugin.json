@@ -1,0 +1,9 @@
+{
+  "name": "pawse",
+  "description": "Interactive desktop hook widget for Claude Code (Windows). When Claude pauses, the lion Leo peeks out so you can reply straight from a desktop popup.",
+  "version": "1.0.0",
+  "author": { "name": "sinwoo0225" },
+  "homepage": "https://github.com/sinwoo0225/Pawse",
+  "repository": "https://github.com/sinwoo0225/Pawse",
+  "license": "MIT"
+}
